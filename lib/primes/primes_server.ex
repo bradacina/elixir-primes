@@ -2,9 +2,8 @@ defmodule Primes.Server do
     
     defstruct free_workers: [],
         work_queue: [],
-        file: nil
-
-    @num_workers 10
+        file: nil,
+        working_on: %{}
 
     @max_queue 10000
 
@@ -15,11 +14,9 @@ defmodule Primes.Server do
         {:ok, file} = File.open("out.txt", [:write, :utf8])
         state = %{state| file: file}
         server = spawn(__MODULE__, :loop, [state])
-        worker_pids = 
-        (1..@num_workers)
-            |> Enum.each(&start_worker(&1, server))
-        IO.inspect(worker_pids)
-
+        Process.register(server, :"Primes.Server")
+        Primes.WorkerMonitor.start()
+        
         # return the server's pid
         server
     end
@@ -35,10 +32,6 @@ defmodule Primes.Server do
         after @backoff_ms ->
             is_prime_retry(server,num)
         end
-    end
-
-    defp start_worker(id, server) do
-        Primes.Worker.start(id, server)
     end
 
     def loop(state) do
@@ -100,6 +93,7 @@ defmodule Primes.Server do
         if Enum.count(state.work_queue) > 0 && Enum.count(state.free_workers) > 0 do
             [work| rest_work] = state.work_queue
             [worker| rest_workers] = state.free_workers
+            state = put_in(state.working_on, [worker], work)
             Primes.Worker.give_work(worker, work)
             state = %{state |work_queue:  rest_work}
             state = %{state| free_workers: rest_workers}

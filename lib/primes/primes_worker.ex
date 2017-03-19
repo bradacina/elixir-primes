@@ -1,12 +1,12 @@
 defmodule Primes.Worker do
 
-    def start(identifier, server) do
-        spawn(__MODULE__, :init_process, [identifier,server])
+    def start(identifier) do
+        spawn(__MODULE__, :init_process, [identifier])
     end
 
-    def init_process(identifier, server) do
+    def init_process(identifier) do
         :rand.seed({:exsplus, [130428040511557832 | 67138277533366280]})
-        send(server, {:ready, self()})
+        send(:"Primes.Server", {:ready, self()})
         loop(identifier)
     end
 
