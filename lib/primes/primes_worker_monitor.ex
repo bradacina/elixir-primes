@@ -5,6 +5,10 @@ defmodule Primes.WorkerMonitor do
         spawn(__MODULE__, :init, [])
     end
 
+    def stop() do
+        
+    end
+
     def init() do
         (1..@num_workers)
             |> Enum.map(&start_initial(&1))
@@ -15,6 +19,7 @@ defmodule Primes.WorkerMonitor do
     defp loop(map) do
         map = receive do
             {:DOWN, _, :process, pid, _} ->
+                Primes.Server.worker_quit(pid)
                 start_worker(map, pid)
             _ -> map
         end
